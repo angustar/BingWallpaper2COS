@@ -23,7 +23,7 @@ set_mkt = ['zh-cn', 'en-us', 'ja-jp', 'en-ww', 'en-gb', 'en-au', 'en-ca', 'fr-fr
 # 确定网址
 def get_image_json_url(num):
     global set_mkt
-    image_json_url = 'https://global.bing.com/HPImageArchive.aspx?format=js&idx=1&n=1&setmkt=' + set_mkt[num]
+    image_json_url = 'https://global.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&setmkt=' + set_mkt[num]
     return image_json_url
 
 
@@ -139,7 +139,6 @@ if __name__ == '__main__':
     time_Y = time.strftime("%Y", time.localtime())
     time_m = time.strftime("%m", time.localtime())
     time_d = time.strftime("%d", time.localtime())
-    time_d = '09'
 
     # 判断用户是否自定义COS源站域名或CDN加速域名
     if configs.domain == None:
@@ -148,7 +147,7 @@ if __name__ == '__main__':
         MyDomin = configs.domain
 
     # 获取国内版每日一图
-    image_json_url = 'https://cn.bing.com/HPImageArchive.aspx?format=js&idx=1&n=1&setmkt=zh_cn'
+    image_json_url = 'https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&setmkt=zh_cn'
     image_json = get_record(image_json_url)
     # 基准文件名，类似于"20210807_"的形式，之后继续添加分辨率和文件后缀即可
     # 完整的文件名形如"20210807_international_001@1920x1080.jpg"
