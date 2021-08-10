@@ -100,8 +100,7 @@ def upload2cos(object_key, pic_md5):
 
 
 # 将图片信息插入数据库
-def insert2db(date, title, region, url_base, md5_1920x1080, url_1920x1080, url_1920x1080_via_cos, md5_uhd, url_uhd,
-              url_uhd_via_cos):
+def insert2db(date, title, region, url_base, url_1920x1080, url_1920x1080_via_cos, url_uhd):
     try:
         conn = sqlite3.connect("Bing.db")  # 在此文件所在的文件夹打开或创建数据库文件
         c = conn.cursor()  # 设置游标
@@ -113,15 +112,11 @@ def insert2db(date, title, region, url_base, md5_1920x1080, url_1920x1080, url_1
                  title text,
                  region text,
                  URL_base text,
-                 MD5_1920x1080 text,
                  URL_1920x1080 text,
                  URL_1920x1080_via_COS text,
-                 MD5_UHD text,
-                 URL_UHD text,
-                 URL_UHD_via_COS text)''')
-        c.execute("INSERT INTO Bing_info VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                  (date, title, region, url_base, md5_1920x1080, url_1920x1080, url_1920x1080_via_cos, md5_uhd,
-                   url_uhd, url_uhd_via_cos))
+                 URL_UHD text)''')
+        c.execute("INSERT INTO Bing_info VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
+                  (date, title, region, url_base, url_1920x1080, url_1920x1080_via_cos, url_uhd))
         insert2db_status = 1
         return insert2db_status
     except:
@@ -173,19 +168,17 @@ if __name__ == '__main__':
     object_key_uhd = 'domestic' + '/' + time_Y + '/' + time_m + '/' + pic_name_base[0] + '@UHD' + '.jpg'
     save_image_status_uhd = save_image(image_url_uhd, object_key_uhd)
     # 计算并返回图片的MD5值，用于判断上传到腾讯云COS的图片的完整性
-    pic_md5_uhd = md5('BingWallpaper' + '/' + object_key_uhd)
-    upload2cos_status_uhd = upload2cos(object_key_uhd, pic_md5_uhd)
+    # pic_md5_uhd = md5('BingWallpaper' + '/' + object_key_uhd)
+    # 清晰度为UHD的图片，只保存在本地，暂不上传到腾讯云COS
+    # upload2cos_status_uhd = upload2cos(object_key_uhd, pic_md5_uhd)
     insert2db_status = insert2db(time_Y + time_m + time_d,
                                  image_json['images'][0]['copyright'],
                                  'zh-cn',
                                  image_json['images'][0]['urlbase'],
-                                 pic_md5_1920x1080,
                                  image_url_1920x1080,
                                  'https://' + MyDomin + '/' + object_key_1920x1080,
-                                 pic_md5_uhd,
-                                 image_url_uhd,
-                                 'https://' + MyDomin + '/' + object_key_uhd)
-    if save_image_status_1920x1080 and upload2cos_status_1920x1080 and save_image_status_uhd and upload2cos_status_uhd and insert2db_status:
+                                 image_url_uhd)
+    if save_image_status_1920x1080 and upload2cos_status_1920x1080 and save_image_status_uhd and insert2db_status:
         domestic_FLAG = 1
     else:
         domestic_FLAG = 0
@@ -217,9 +210,10 @@ if __name__ == '__main__':
         object_key_uhd = region + '/' + time_Y + '/' + time_m + '/' + pic_name_base[temp] + '@UHD' + '.jpg'
         save_image_status_uhd = save_image(image_url_uhd, object_key_uhd)
         # 计算并返回图片的MD5值，用于判断上传到腾讯云COS的图片的完整性
-        pic_md5_uhd = md5('BingWallpaper' + '/' + object_key_uhd)
-        upload2cos_status_uhd = upload2cos(object_key_uhd, pic_md5_uhd)
-        if save_image_status_1920x1080 and upload2cos_status_1920x1080 and save_image_status_uhd and upload2cos_status_uhd:
+        # pic_md5_uhd = md5('BingWallpaper' + '/' + object_key_uhd)
+        # 清晰度为UHD的图片，只保存在本地，暂不上传到腾讯云COS
+        # upload2cos_status_uhd = upload2cos(object_key_uhd, pic_md5_uhd)
+        if save_image_status_1920x1080 and upload2cos_status_1920x1080 and save_image_status_uhd:
             international_FLAG = 1
             break
         else:
@@ -230,12 +224,9 @@ if __name__ == '__main__':
                                  image_json['images'][0]['copyright'],
                                  set_mkt[i],
                                  image_json['images'][0]['urlbase'],
-                                 pic_md5_1920x1080,
                                  image_url_1920x1080,
                                  'https://' + MyDomin + '/' + object_key_1920x1080,
-                                 pic_md5_uhd,
-                                 image_url_uhd,
-                                 'https://' + MyDomin + '/' + object_key_uhd)
+                                 image_url_uhd)
     if insert2db_status:  # 判断插入数据库是否成功
         international_FLAG = 1
     else:
