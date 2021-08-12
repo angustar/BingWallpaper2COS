@@ -6,7 +6,6 @@ import time
 import os
 import sqlite3
 import hashlib
-# import shutil  # 如果需要在图片上传至腾讯云COS后删除相关文件及文件夹，则导入此依赖项
 
 import configs  # 导入配置文件
 
@@ -52,51 +51,65 @@ def md5(path):
 # 保存图片
 def save_image(img_url, object_key):
     pic_path, pic_name = os.path.split('BingWallpaper' + '/' + object_key)
-    if not os.path.exists(pic_path):  # 判断目录是否存在,若不存在则新建目录
-        os.makedirs(pic_path)
-    global headers
-    image = requests.get(img_url, headers=headers)
-    f = open('BingWallpaper' + '/' + object_key, 'ab')
-    f.write(image.content)
-    f.close()
-    # 判断图片是否大于100KB，若大于，则视为图片保存成功
-    # 若图片保存失败，则通过Server酱发送消息通知
-    if os.path.getsize('BingWallpaper' + '/' + object_key) / 1024 > 100:
-        print(pic_name + '保存成功！')
-        save_image_status = 1
-    else:
+    try:
+        if not os.path.exists(pic_path):  # 判断目录是否存在,若不存在则新建目录
+            os.makedirs(pic_path)
+        global headers
+        image = requests.get(img_url, headers=headers)
+        f = open('BingWallpaper' + '/' + object_key, 'ab')
+        f.write(image.content)
+        f.close()
+        # 判断图片是否大于100KB，若大于，则视为图片保存成功
+        # 若图片保存失败，则通过Server酱发送消息通知
+        if os.path.getsize('BingWallpaper' + '/' + object_key) / 1024 > 100:
+            print(pic_name + '保存成功！')
+            save_image_status = 1
+        else:
+            print(pic_name + '保存失败，尝试通过Server酱发送通知！')
+            requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
+                          data={'text': "必应每日一图保存失败！", 'desp': pic_name + "保存失败！"})
+            save_image_status = 0
+        return save_image_status
+    except:
         print(pic_name + '保存失败，尝试通过Server酱发送通知！')
         requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
                       data={'text': "必应每日一图保存失败！", 'desp': pic_name + "保存失败！"})
         save_image_status = 0
-    return save_image_status
+        return save_image_status
 
 
 # 上传图片到腾讯云COS
 def upload2cos(object_key, pic_md5):
-    configs.logging.basicConfig(level=configs.logging.INFO, stream=configs.sys.stdout)
-    config = configs.CosConfig(Region=configs.region, SecretId=configs.secret_id,
-                               SecretKey=configs.secret_key, Token=configs.token,
-                               Domain=configs.domain)  # 获取配置对象
-    client = configs.CosS3Client(config)
-    with open('BingWallpaper' + '/' + object_key, 'rb') as fp:
-        response = client.put_object(
-            Bucket=configs.Bucket,
-            Body=fp,
-            Key=object_key,
-        )
     pic_path, pic_name = os.path.split('BingWallpaper' + '/' + object_key)
-    # 判断本地图片和腾讯云COS中的图片的MD5值是否相等
-    # 若MD5值不相等，则图片上传失败，通过Server酱发送消息通知
-    if response['ETag'].split('"')[1] == pic_md5:  # 由'ETag'返回的MD5值自带双引号，形如"6b16281f8f07e029485c0efe10657b23"！！！
-        print(pic_name + '上传成功！')
-        upload2cos_status = 1
-    else:
+    try:
+        configs.logging.basicConfig(level=configs.logging.INFO, stream=configs.sys.stdout)
+        config = configs.CosConfig(Region=configs.region, SecretId=configs.secret_id,
+                                   SecretKey=configs.secret_key, Token=configs.token,
+                                   Domain=configs.domain)  # 获取配置对象
+        client = configs.CosS3Client(config)
+        with open('BingWallpaper' + '/' + object_key, 'rb') as fp:
+            response = client.put_object(
+                Bucket=configs.Bucket,
+                Body=fp,
+                Key=object_key,
+            )
+        # 判断本地图片和腾讯云COS中的图片的MD5值是否相等
+        # 若MD5值不相等，则图片上传失败，通过Server酱发送消息通知
+        if response['ETag'].split('"')[1] == pic_md5:  # 由'ETag'返回的MD5值自带双引号，形如"6b16281f8f07e029485c0efe10657b23"！！！
+            print(pic_name + '上传成功！')
+            upload2cos_status = 1
+        else:
+            print(pic_name + '上传失败，尝试通过Server酱发送通知！')
+            requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
+                          data={'text': "必应每日一图上传失败！", 'desp': pic_name + "上传失败！"})
+            upload2cos_status = 0
+        return upload2cos_status
+    except:
         print(pic_name + '上传失败，尝试通过Server酱发送通知！')
         requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
                       data={'text': "必应每日一图上传失败！", 'desp': pic_name + "上传失败！"})
         upload2cos_status = 0
-    return upload2cos_status
+        return upload2cos_status
 
 
 # 将图片信息插入数据库
@@ -117,6 +130,7 @@ def insert2db(date, title, region, url_base, url_1920x1080, url_1920x1080_via_co
                  URL_UHD text)''')
         c.execute("INSERT INTO Bing_info VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
                   (date, title, region, url_base, url_1920x1080, url_1920x1080_via_cos, url_uhd))
+        print('数据库写入成功！')
         insert2db_status = 1
         return insert2db_status
     except:
@@ -232,5 +246,5 @@ if __name__ == '__main__':
         international_FLAG = 0
     if domestic_FLAG and international_FLAG:
         print('所有操作成功完成！')
-    # 在图片上传至腾讯云COS后删除相关文件及文件夹
-    # shutil.rmtree('BingWallpaper')
+    else:
+        print('存在操作失败的情况，请检查！')
