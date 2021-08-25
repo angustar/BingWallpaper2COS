@@ -98,13 +98,11 @@
 │  └─2021
 │      └─08
 │          20210801_domestic@1920x1080.jpg
-│          20210801_domestic@UHD.jpg
 │              
 └─international
     └─2021
         └─08
             20210801_international@1920x1080.jpg
-            20210801_international@UHD.jpg
 ```
 
 # 调用 API
