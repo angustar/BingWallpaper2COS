@@ -9,6 +9,7 @@
 * 保存当日的 Bing 壁纸至本地，包括分辨率为`1920x1080`的版本和 UHD 版本；
 * 将分辨率为`1920x1080`的版本上传至腾讯云 COS，并获得图片的访问地址，可用于网站背景图等；
 * 将相关信息写入数据库，以便后续读取；
+* 通过Server酱或Wecom酱发送程序执行结果；
 * 访问`myexample.com/BingWallpaper2COS`时可以随机返回一张分辨率为`1920x1080`的图片。
 
 # 部署
@@ -53,8 +54,11 @@
    domain = None  # COS的自定义源站域名或自定义CDN加速域名,结尾不要加"/", 如果使用全球加速域名, 则设置成对应的域名
    Bucket = 'BucketName-APPID'  # Bucket 由 BucketName-APPID 组成
    
-   # Server酱·Turbo版配置信息，用于程序执行错误时向用户发送通知
+   # Server酱·Turbo版配置信息，用于程序执行错误时向用户发送通知，若无需发送通知则设置为None即可
    SendKey = '*********************************'
+   # Wecom酱配置信息，用于程序执行错误时向用户发送通知，若无需发送通知则设置为None即可
+   WecomSendKey = None
+   WecomAPI = None  # 结尾不要加"/"
    ```
 
 4. 设置定时执行`main.py`，可以在宝塔面板的计划任务中添加一个定时任务，任务类型设定为`Shell脚本`，执行周期自定，每日定时执行一次即可，脚本内容如下：
@@ -70,8 +74,11 @@
 ```
 │  Bing.db
 │  configs.py
+│  configs-sample.py
 │  index.php
+│  LICENSE
 │  main.py
+│  README.md
 │  requirements.txt
 │          
 ├─BingWallpaper

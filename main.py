@@ -48,6 +48,14 @@ def md5(path):
     return myhash.hexdigest()
 
 
+def send_notification_server(data):
+    requests.post('https://sctapi.ftqq.com/' + configs.ServerSendKey + '.send', data=data)
+
+
+def send_notification_wecom(text):
+    requests.post(configs.WecomAPI + '/?sendkey=' + configs.WecomSendKey + '&text=' + text)
+
+
 # 保存图片
 def save_image(img_url, object_key):
     pic_path, pic_name = os.path.split('BingWallpaper' + '/' + object_key)
@@ -60,20 +68,28 @@ def save_image(img_url, object_key):
         f.write(image.content)
         f.close()
         # 判断图片是否大于100KB，若大于，则视为图片保存成功
-        # 若图片保存失败，则通过Server酱发送消息通知
+        # 若图片保存失败，则通过Server酱或Wecom酱发送消息通知
         if os.path.getsize('BingWallpaper' + '/' + object_key) / 1024 > 100:
             print(pic_name + '保存成功！')
             save_image_status = 1
         else:
-            print(pic_name + '保存失败，尝试通过Server酱发送通知！')
-            requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
-                          data={'text': "必应每日一图保存失败！", 'desp': pic_name + "保存失败！"})
+            print(pic_name + '保存失败，尝试通过Server酱或Wecom酱发送通知！')
+            if configs.ServerSendKey is not None:
+                data = {'text': "必应每日壁纸保存失败！", 'desp': pic_name + "保存失败！"}
+                send_notification_server(data)
+            elif configs.WecomSendKey is not None:
+                text = "必应每日壁纸保存失败！%0D%0A文件名：" + pic_name
+                send_notification_wecom(text)
             save_image_status = 0
         return save_image_status
     except:
-        print(pic_name + '保存失败，尝试通过Server酱发送通知！')
-        requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
-                      data={'text': "必应每日一图保存失败！", 'desp': pic_name + "保存失败！"})
+        print(pic_name + '保存失败，尝试通过Server酱或Wecom酱发送通知！')
+        if configs.ServerSendKey is not None:
+            data = {'text': "必应每日壁纸保存失败！", 'desp': pic_name + "保存失败！"}
+            send_notification_server(data)
+        elif configs.WecomSendKey is not None:
+            text = "必应每日壁纸保存失败！%0D%0A文件名：" + pic_name
+            send_notification_wecom(text)
         save_image_status = 0
         return save_image_status
 
@@ -82,32 +98,49 @@ def save_image(img_url, object_key):
 def upload2cos(object_key, pic_md5):
     pic_path, pic_name = os.path.split('BingWallpaper' + '/' + object_key)
     try:
-        configs.logging.basicConfig(level=configs.logging.INFO, stream=configs.sys.stdout)
+        # configs.logging.basicConfig(level=configs.logging.INFO, stream=configs.sys.stdout)
         config = configs.CosConfig(Region=configs.region, SecretId=configs.secret_id,
-                                   SecretKey=configs.secret_key, Token=configs.token,
-                                   Domain=configs.domain)  # 获取配置对象
+                                   SecretKey=configs.secret_key, Token=configs.token)  # 获取配置对象
         client = configs.CosS3Client(config)
         with open('BingWallpaper' + '/' + object_key, 'rb') as fp:
             response = client.put_object(
                 Bucket=configs.Bucket,
                 Body=fp,
-                Key=object_key,
+                Key=object_key
             )
         # 判断本地图片和腾讯云COS中的图片的MD5值是否相等
-        # 若MD5值不相等，则图片上传失败，通过Server酱发送消息通知
+        # 若MD5值不相等，则图片上传失败，通过Server酱或Wecom酱发送消息通知
         if response['ETag'].split('"')[1] == pic_md5:  # 由'ETag'返回的MD5值自带双引号，形如"6b16281f8f07e029485c0efe10657b23"！！！
-            print(pic_name + '上传成功！')
+            if configs.domain is not None:
+                preview_url = 'https://' + configs.domain + '/' + object_key
+            else:
+                preview_url = 'https://' + configs.Bucket + '.cos.' + configs.region + '.myqcloud.com/' + object_key
+            print(pic_name + '上传成功！预览链接：' + preview_url)
+            if configs.ServerSendKey is not None:
+                data = {'text': "必应每日壁纸上传成功！", 'desp': "预览链接：" + preview_url}
+                send_notification_server(data)
+            elif configs.WecomSendKey is not None:
+                text = "必应每日壁纸上传成功！%0D%0A预览链接：" + preview_url
+                send_notification_wecom(text)
             upload2cos_status = 1
         else:
-            print(pic_name + '上传失败，尝试通过Server酱发送通知！')
-            requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
-                          data={'text': "必应每日一图上传失败！", 'desp': pic_name + "上传失败！"})
+            print(pic_name + '上传失败，尝试通过Server酱或Wecom酱发送通知！')
+            if configs.ServerSendKey is not None:
+                data = {'text': "必应每日壁纸上传失败！", 'desp': pic_name + "上传失败！"}
+                send_notification_server(data)
+            elif configs.WecomSendKey is not None:
+                text = "必应每日壁纸上传失败！%0D%0A文件名：" + pic_name
+                send_notification_wecom(text)
             upload2cos_status = 0
         return upload2cos_status
     except:
-        print(pic_name + '上传失败，尝试通过Server酱发送通知！')
-        requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
-                      data={'text': "必应每日一图上传失败！", 'desp': pic_name + "上传失败！"})
+        print(pic_name + '上传失败，尝试通过Server酱或Wecom酱发送通知！')
+        if configs.ServerSendKey is not None:
+            data = {'text': "必应每日壁纸上传失败！", 'desp': pic_name + "上传失败！"}
+            send_notification_server(data)
+        elif configs.WecomSendKey is not None:
+            text = "必应每日壁纸上传失败！%0D%0A文件名：" + pic_name
+            send_notification_wecom(text)
         upload2cos_status = 0
         return upload2cos_status
 
@@ -134,9 +167,13 @@ def insert2db(date, title, region, url_base, url_1920x1080, url_1920x1080_via_co
         insert2db_status = 1
         return insert2db_status
     except:
-        print('操作数据库出错，尝试通过Server酱发送通知！')
-        requests.post('https://sctapi.ftqq.com/' + configs.SendKey + '.send',
-                      data={'text': "必应每日一图操作数据库出错！", 'desp': "操作数据库出错！"})
+        print('操作数据库出错，尝试通过Server酱或Wecom酱发送通知！')
+        if configs.ServerSendKey is not None:
+            data = {'text': "必应每日壁纸操作数据库出错！", 'desp': "操作数据库出错！"}
+            send_notification_server(data)
+        elif configs.WecomSendKey is not None:
+            text = "必应每日壁纸操作数据库出错！"
+            send_notification_wecom(text)
         insert2db_status = 0
         return insert2db_status
     finally:

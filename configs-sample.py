@@ -12,8 +12,11 @@ secret_id = '************************************'  # 替换为用户的secret_i
 secret_key = '********************************'  # 替换为用户的secret_key
 region = 'ap-shanghai'  # 替换为用户的region，例如：ap-shanghai
 token = None  # 使用临时密钥需要传入Token，默认为空,可不填
-domain = None  # COS的自定义源站域名或自定义CDN加速域名,结尾不要加"/", 如果使用全球加速域名, 则设置成对应的域名, 如mybucket-01234.cos.accelerate.myqcloud.com，开启全球加速请参考https://cloud.tencent.com/document/product/436/38864
+domain = None  # COS的自定义源站域名或自定义CDN加速域名,结尾不要加"/", 如果使用全球加速域名, 则设置成对应的域名
 Bucket = 'BucketName-APPID'  # Bucket 由 BucketName-APPID 组成
 
-# Server酱·Turbo版配置信息，用于程序执行错误时向用户发送通知
+# Server酱·Turbo版配置信息，用于程序执行错误时向用户发送通知，若无需发送通知则设置为None即可
 SendKey = '*********************************'
+# Wecom酱配置信息，用于程序执行错误时向用户发送通知，若无需发送通知则设置为None即可
+WecomSendKey = None
+WecomAPI = None  # 结尾不要加"/"
