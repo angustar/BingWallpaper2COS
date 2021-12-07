@@ -197,47 +197,15 @@ if __name__ == '__main__':
     else:
         MyDomin = configs.domain
 
-    # 获取国内版每日一图
-    image_json_url = 'https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&setmkt=zh_cn'
-    image_json = get_record(image_json_url)
     # 基准文件名，类似于"20210807_"的形式，之后继续添加分辨率和文件后缀即可
     # 完整的文件名形如"20210807_international_001@1920x1080.jpg"
     pic_name_base = [time_Y + time_m + time_d + '_' + 'domestic',
                      time_Y + time_m + time_d + '_' + 'international']
-    # 分辨率为1920x1080的图片链接
-    image_url_1920x1080 = 'https://cn.bing.com' + image_json['images'][0]['urlbase'] + '_1920x1080.jpg'
-    # 分辨率为1920x1080的图片的保存路径+文件名
-    object_key_1920x1080 = 'domestic' + '/' + time_Y + '/' + time_m + '/' + pic_name_base[0] + '@1920x1080' + '.jpg'
-    save_image_status_1920x1080 = save_image(image_url_1920x1080, object_key_1920x1080)
-    # 计算并返回图片的MD5值，用于判断上传到腾讯云COS的图片的完整性
-    pic_md5_1920x1080 = md5('BingWallpaper' + '/' + object_key_1920x1080)
-    upload2cos_status_1920x1080 = upload2cos(object_key_1920x1080, pic_md5_1920x1080)
-    # 清晰度为UHD(分辨率不定，但大于1920x1080)的图片链接
-    image_url_uhd = 'https://cn.bing.com' + image_json['images'][0]['urlbase'] + '_UHD.jpg'
-    # 清晰度为UHD的图片的保存路径+文件名
-    object_key_uhd = 'domestic' + '/' + time_Y + '/' + time_m + '/' + pic_name_base[0] + '@UHD' + '.jpg'
-    save_image_status_uhd = save_image(image_url_uhd, object_key_uhd)
-    # 计算并返回图片的MD5值，用于判断上传到腾讯云COS的图片的完整性
-    # pic_md5_uhd = md5('BingWallpaper' + '/' + object_key_uhd)
-    # 清晰度为UHD的图片，只保存在本地，暂不上传到腾讯云COS
-    # upload2cos_status_uhd = upload2cos(object_key_uhd, pic_md5_uhd)
-    insert2db_status = insert2db(time_Y + time_m + time_d,
-                                 image_json['images'][0]['copyright'],
-                                 'zh-cn',
-                                 image_json['images'][0]['urlbase'],
-                                 image_url_1920x1080,
-                                 'https://' + MyDomin + '/' + object_key_1920x1080,
-                                 image_url_uhd)
-    if save_image_status_1920x1080 and upload2cos_status_1920x1080 and save_image_status_uhd and insert2db_status:
-        domestic_FLAG = 1
-    else:
-        domestic_FLAG = 0
 
-    # 获取国际版每日一图
-    for i in range(1, len(set_mkt)):
-        # 由于前面已经获取了国内版每日一图，故for循环从1开始，跳过zh-cn
-        # 事实上，也可以在for循环中使i从0开始，直接获取国内版每日一图，但由于https://global.bing.com对应的服务器位于美国，
-        # 高峰时期可能出现time out的情况，一般建议国内版每日一图从https://cn.bing.com抓取
+    # 获取每日一图
+    FLAG = []
+    # for i in range(0, len(set_mkt)):
+    for i in range(0, 2):
         if i == 0:
             region = 'domestic'
             temp = 0
@@ -263,25 +231,19 @@ if __name__ == '__main__':
         # pic_md5_uhd = md5('BingWallpaper' + '/' + object_key_uhd)
         # 清晰度为UHD的图片，只保存在本地，暂不上传到腾讯云COS
         # upload2cos_status_uhd = upload2cos(object_key_uhd, pic_md5_uhd)
-        if save_image_status_1920x1080 and upload2cos_status_1920x1080 and save_image_status_uhd:
-            international_FLAG = 1
-            break
+        insert2db_status = insert2db(time_Y + time_m + time_d,
+                                     image_json['images'][0]['copyright'],
+                                     set_mkt[i],
+                                     image_json['images'][0]['urlbase'],
+                                     image_url_1920x1080,
+                                     'https://' + MyDomin + '/' + object_key_1920x1080,
+                                     image_url_uhd)
+        if save_image_status_1920x1080 and upload2cos_status_1920x1080 and save_image_status_uhd and insert2db_status:
+            FLAG.append(1)
         else:
-            international_FLAG = 0
-            time.sleep(3)  # 等待3秒后再继续循环
-    # 插入数据库的操作放在循环外的原因是防止在循环中同一张图片被插入多条记录
-    insert2db_status = insert2db(time_Y + time_m + time_d,
-                                 image_json['images'][0]['copyright'],
-                                 set_mkt[i],
-                                 image_json['images'][0]['urlbase'],
-                                 image_url_1920x1080,
-                                 'https://' + MyDomin + '/' + object_key_1920x1080,
-                                 image_url_uhd)
-    if insert2db_status:  # 判断插入数据库是否成功
-        international_FLAG = 1
-    else:
-        international_FLAG = 0
-    if domestic_FLAG and international_FLAG:
+            FLAG.append(0)
+
+    if FLAG[0] and FLAG[1]:
         print('所有操作成功完成！')
     else:
         print('存在操作失败的情况，请检查！')
