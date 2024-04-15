@@ -18,7 +18,7 @@
 
    ```shell
    cd /www/wwwroot/myexample.com  # 根据实际情况修改路径
-   git clone https://github.com/ikaleo/BingWallpaper2COS.git
+   git clone https://github.com/angustar/BingWallpaper2COS.git
    cd BingWallpaper2COS
    ```
 
